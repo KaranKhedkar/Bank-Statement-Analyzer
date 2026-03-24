@@ -1,3 +1,8 @@
 git add .
 git commit -m "Updated files"
 git push
+
+
+//backend
+venv\Scripts\activate
+uvicorn main:app --reload

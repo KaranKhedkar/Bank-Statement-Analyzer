@@ -41,9 +41,13 @@ export default function App() {
           <Route path="categories" element={<Categories/>} />
         </Route>
         
+        
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
+
+
+
