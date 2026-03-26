@@ -25,11 +25,12 @@
 # def root():
 #     return {"status": "Bank Analyzer API is running"}
 
-
+#main.py
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import upload, anomalies  # ← add anomalies
+from routers import upload, anomalies, forecast
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -46,6 +47,7 @@ app.add_middleware(
 
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(anomalies.router, prefix="/api", tags=["anomalies"])  # ← add this
+app.include_router(forecast.router, prefix="/api", tags=["forecast"])
 
 @app.get("/")
 def root():
