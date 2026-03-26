@@ -72,3 +72,38 @@ export const getTransactions = async (uploadId) => {
   if (!response.ok) throw new Error('Failed to fetch transactions')
   return response.json()
 }
+
+
+
+export const detectAnomalies = async () => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/anomalies/detect`, {
+    method: "POST",
+    headers: authHeader,
+  })
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || "Detection failed")
+  }
+  return response.json()
+}
+
+export const getAnomalies = async () => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/anomalies`, {
+    headers: authHeader,
+  })
+  if (!response.ok) throw new Error("Failed to fetch anomalies")
+  return response.json()
+}
+
+export const updateAnomalyStatus = async (anomalyId, status) => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/anomalies/${anomalyId}`, {
+    method: "PATCH",
+    headers: { ...authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  })
+  if (!response.ok) throw new Error("Failed to update anomaly")
+  return response.json()
+}
