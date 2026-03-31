@@ -263,6 +263,7 @@ BANK_PATTERNS = {
     "Bank of Baroda": ["BANK OF BARODA", "BOB", "bankofbaroda.in"],
     "Punjab National Bank": ["PUNJAB NATIONAL", "PNB", "pnbindia.in"],
     "Canara Bank": ["CANARA BANK", "canarabank.com"],
+    "Bank of India": ["BANK OF INDIA", "BOI", "bankofindia.com"],
 }
 
 DATE_FORMATS = [
@@ -307,33 +308,58 @@ def detect_transaction_type(row_text, amount_str):
         return 'credit'
     return 'debit'
 
-def extract_transactions_from_table(table, bank_name):
+def extract_transactions_from_table(table, bank_name, prev_columns=None):
     transactions = []
     if not table or len(table) < 2:
-        return transactions
+        return transactions, prev_columns
 
     header_row_idx = 0
+    has_header = False
     for i, row in enumerate(table[:5]):
         row_text = ' '.join(str(cell).lower() for cell in row if cell)
         if 'date' in row_text and any(x in row_text for x in ['debit', 'credit', 'narration', 'details', 'particulars']):
             header_row_idx = i
+            has_header = True
             break
 
-    header = [str(cell).strip().lower() if cell else '' for cell in table[header_row_idx]]
-    
-    # --- Map column indices including Balance ---
-    balance_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['balance', 'closing', 'running'])), None)
-    date_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['date', 'value date', 'post date'])), None)
-    desc_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['description', 'narration', 'particulars', 'details', 'remarks'])), None)
-    debit_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['debit', 'dr', 'withdrawal']) and i != balance_idx), None)
-    credit_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['credit', 'cr', 'deposit']) and i != balance_idx), None)
-    amount_idx = next((i for i, h in enumerate(header) if h in ['amount', 'transaction amount'] and i != balance_idx), None)
+    if has_header:
+        header = [str(cell).strip().lower() if cell else '' for cell in table[header_row_idx]]
+        
+        # --- Map column indices including Balance ---
+        balance_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['balance', 'closing', 'running'])), None)
+        date_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['date', 'value date', 'post date'])), None)
+        desc_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['description', 'narration', 'particulars', 'details', 'remarks'])), None)
+        debit_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['debit', 'dr', 'withdrawal']) and i != balance_idx), None)
+        credit_idx = next((i for i, h in enumerate(header) if any(x in h for x in ['credit', 'cr', 'deposit']) and i != balance_idx), None)
+        amount_idx = next((i for i, h in enumerate(header) if h in ['amount', 'transaction amount'] and i != balance_idx), None)
 
-    # SBI Fallback
-    if date_idx is None and desc_idx is None:
-        date_idx, desc_idx, debit_idx, credit_idx, balance_idx = 0, 2, 4, 5, 6
+        # SBI Fallback
+        if date_idx is None and desc_idx is None:
+            date_idx, desc_idx, debit_idx, credit_idx, balance_idx = 0, 2, 4, 5, 6
 
-    for row in table[header_row_idx + 1:]:
+        columns = {
+            'balance_idx': balance_idx,
+            'date_idx': date_idx,
+            'desc_idx': desc_idx,
+            'debit_idx': debit_idx,
+            'credit_idx': credit_idx,
+            'amount_idx': amount_idx
+        }
+    else:
+        # Use previous columns if no header found (continuation table)
+        if prev_columns:
+            columns = prev_columns
+        else:
+            return transactions, prev_columns
+
+    balance_idx = columns['balance_idx']
+    date_idx = columns['date_idx']
+    desc_idx = columns['desc_idx']
+    debit_idx = columns['debit_idx']
+    credit_idx = columns['credit_idx']
+    amount_idx = columns['amount_idx']
+
+    for row in table[header_row_idx + 1:] if has_header else table:
         try:
             if not row or all(cell is None or str(cell).strip() == '' for cell in row): continue
             row_text = ' '.join(str(c) for c in row if c).lower()
@@ -379,20 +405,26 @@ def extract_transactions_from_table(table, bank_name):
         except Exception as e:
             print(f"Row error: {e}")
             continue
-    return transactions
+    return transactions, columns
 
 def parse_pdf(contents):
     transactions = []
     bank_name = "Unknown Bank"
+    prev_columns = None
     try:
         with pdfplumber.open(io.BytesIO(contents)) as pdf:
             full_text = ""
             for page in pdf.pages:
-                full_text += page.extract_text() or ""
-                if bank_name == "Unknown Bank": bank_name = detect_bank(full_text)
+                page_text = page.extract_text() or ""
+                full_text += page_text
+                if bank_name == "Unknown Bank":
+                    bank_name = detect_bank(full_text)
                 tables = page.extract_tables()
                 for table in tables:
-                    transactions.extend(extract_transactions_from_table(table, bank_name))
+                    page_transactions, prev_columns = extract_transactions_from_table(table, bank_name, prev_columns)
+                    transactions.extend(page_transactions)
+            if not transactions and full_text:
+                transactions = parse_text_based(full_text, bank_name)
     except Exception as e:
         return [], "Unknown Bank"
     return transactions, bank_name
