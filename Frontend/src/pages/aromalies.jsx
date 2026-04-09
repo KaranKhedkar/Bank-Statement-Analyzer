@@ -496,9 +496,17 @@ export default function Anomalies() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // useEffect(() => {
+  //   fetchAnomalies();
+  // }, [fetchAnomalies]);
+
   useEffect(() => {
+  const currentAnomalies = useAppStore.getState().anomalies;
+  
+  if (currentAnomalies.length === 0) {
     fetchAnomalies();
-  }, [fetchAnomalies]);
+  }
+}, [fetchAnomalies]);
 
   // Pagination Logic
   const pendingItems = useMemo(
