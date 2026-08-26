@@ -223,7 +223,7 @@ def get_user_supabase(authorization: str):
     Creates a temporary, request-scoped Supabase client that injects 
     the user's JWT so Row Level Security (RLS) policies pass successfully.
     """
-    print(f"🔑 Auth Header received: {authorization[:30]}...") 
+    print(f"[AUTH] Auth Header received: {authorization[:30] if authorization else 'None'}...") 
     
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
@@ -240,10 +240,10 @@ def get_user_supabase(authorization: str):
     try:
         user_response = user_supabase.auth.get_user(token)
         user_id = user_response.user.id
-        print(f"✅ User authenticated: {user_id}")
+        print(f"[AUTH] User authenticated: {user_id}")
         return user_supabase, user_id
     except Exception as e:
-        print(f"❌ Supabase Auth Error: {type(e).__name__} - {str(e)}")
+        print(f"[AUTH ERROR] Supabase Auth Error: {type(e).__name__} - {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
@@ -256,7 +256,7 @@ async def upload_file(
     user_supabase, user_id = get_user_supabase(authorization)
 
     # --- DEDUPLICATION CHECK ---
-    print(f"🔍 Checking if {file.filename} was already uploaded...")
+    print(f"[UPLOAD] Checking if {file.filename} was already uploaded...")
     existing_upload = user_supabase.table("uploads")\
         .select("id")\
         .eq("user_id", user_id)\
@@ -264,7 +264,7 @@ async def upload_file(
         .execute()
 
     if existing_upload.data:
-        print("⚠️ Duplicate file detected. Rejecting upload.")
+        print("[UPLOAD WARNING] Duplicate file detected. Rejecting upload.")
         raise HTTPException(
             status_code=409, 
             detail="You have already uploaded a statement with this exact file name."
@@ -273,9 +273,7 @@ async def upload_file(
     if not file.filename.endswith(('.pdf', '.csv')):
         raise HTTPException(status_code=400, detail="Only PDF or CSV files allowed")
 
-    # 🛑 DESTRUCTIVE DELETE COMMANDS HAVE BEEN REMOVED
-
-    print(f"📄 [1] Reading {file.filename}...")
+    print(f"[UPLOAD 1/5] Reading {file.filename}...")
     contents = await file.read()
 
     if file.filename.endswith('.pdf'):
@@ -287,11 +285,11 @@ async def upload_file(
     if not transactions:
         raise HTTPException(status_code=422, detail="No transactions found in file")
 
-    print("🏷️ [2] Categorizing transactions (Rules + AI)...")
+    print("[UPLOAD 2/5] Categorizing transactions (Rules + AI)...")
     transactions = categorize_transactions(transactions)
     transactions = ai_categorize_batch(transactions)
 
-    print("💾 [3] Inserting new upload record...")
+    print("[UPLOAD 3/5] Inserting new upload record...")
     upload_record = user_supabase.table("uploads").insert({
         "file_name": file.filename,
         "bank_detected": bank_name,
@@ -301,11 +299,11 @@ async def upload_file(
 
     upload_id = upload_record.data[0]["id"]
 
-    print("💾 [4] Inserting transaction rows...")
+    print("[UPLOAD 4/5] Inserting transaction rows...")
     rows = [{**t, "upload_id": upload_id, "user_id": user_id} for t in transactions]
     user_supabase.table("transactions").insert(rows).execute()
 
-    print("🎉 [5] Upload complete!")
+    print("[UPLOAD 5/5] Upload complete!")
     return {
         "upload_id": upload_id,
         "bank_detected": bank_name,

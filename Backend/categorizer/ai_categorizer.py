@@ -19,13 +19,13 @@ def ai_categorize_batch(transactions):
     needs_ai = [t for t in transactions if t.get('needs_ai')]
 
     if not needs_ai:
-        print("✅ All transactions categorized by rules — skipping AI")
+        print("[CATEGORIZER] All transactions categorized by rules -- skipping AI")
         return transactions
 
-    print(f"🤖 Sending {len(needs_ai)} transactions to Gemini...")
+    print(f"[CATEGORIZER] Sending {len(needs_ai)} transactions to Gemini...")
 
     txn_list = "\n".join([
-        f"{i+1}. Date: {t['date']} | Amount: ₹{t['amount']} | "
+        f"{i+1}. Date: {t['date']} | Amount: Rs.{t['amount']} | "
         f"Type: {t['type']} | Description: {t['description']}"
         for i, t in enumerate(needs_ai)
     ])
@@ -73,16 +73,16 @@ Respond ONLY with a JSON array in this exact format with no explanation:
                 needs_ai[idx].pop('needs_ai', None)
                 matched += 1
 
-        print(f"✅ Gemini categorized {matched} transactions")
+        print(f"[CATEGORIZER] Gemini categorized {matched} transactions")
 
     except json.JSONDecodeError as e:
-        print(f"❌ JSON parse error: {e}")
+        print(f"[CATEGORIZER ERROR] JSON parse error: {e}")
         for t in needs_ai:
             t['category'] = 'Other'
             t.pop('needs_ai', None)
 
     except Exception as e:
-        print(f"❌ Gemini API error: {e}")
+        print(f"[CATEGORIZER ERROR] Gemini API error: {e}")
         for t in needs_ai:
             t['category'] = 'Other'
             t.pop('needs_ai', None)

@@ -251,33 +251,142 @@ import re
 import io
 from datetime import datetime
 
-BANK_PATTERNS = {
-    "HDFC Bank": ["HDFC", "HDFC BANK", "hdfcbank.com"],
-    "SBI": ["STATE BANK OF INDIA", "SBI", "onlinesbi.com"],
-    "ICICI Bank": ["ICICI", "ICICI BANK", "icicibank.com"],
-    "Axis Bank": ["AXIS BANK", "axisbank.com"],
-    "Kotak Bank": ["KOTAK", "KOTAK MAHINDRA", "kotak.com"],
-    "IDFC Bank": ["IDFC", "IDFC FIRST", "idfcfirstbank.com"],
-    "Yes Bank": ["YES BANK", "yesbank.in"],
-    "IndusInd Bank": ["INDUSIND", "indusind.com"],
-    "Bank of Baroda": ["BANK OF BARODA", "BOB", "bankofbaroda.in"],
-    "Punjab National Bank": ["PUNJAB NATIONAL", "PNB", "pnbindia.in"],
-    "Canara Bank": ["CANARA BANK", "canarabank.com"],
-    "Bank of India": ["BANK OF INDIA", "BOI", "bankofindia.com"],
-}
-
-DATE_FORMATS = [
-    "%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y", "%d-%m-%y",
-    "%Y-%m-%d", "%d %b %Y", "%d %B %Y", "%d-%b-%Y",
-    "%d/%b/%Y", "%d %b %y", "%d-%b-%y",
+BANK_RULES = [
+    {
+        "name": "State Bank of India",
+        "aliases": ["SBI"],
+        "domains": ["onlinesbi.sbi", "onlinesbi.com"],
+        "full_names": [r"\bstate\s+bank\s+of\s+india\b"],
+        "short_patterns": [r"\bsbi\b"]
+    },
+    {
+        "name": "Bank of India",
+        "aliases": ["BOI"],
+        "domains": ["bankofindia.co.in", "bankofindia.com"],
+        "full_names": [r"(?<!state\s)(?<!union\s)(?<!central\s)\bbank\s+of\s+india\b", r"\bboi\s+star\b", r"\bstarconnect\b"],
+        "short_patterns": [r"\bboi\b"]
+    },
+    {
+        "name": "Bank of Baroda",
+        "aliases": ["BOB"],
+        "domains": ["bankofbaroda.in", "bankofbaroda.co.in", "bankofbaroda.com"],
+        "full_names": [r"\bbank\s+of\s+baroda\b", r"\bbaroda\s+connect\b"],
+        "short_patterns": [r"\bbob\b"]
+    },
+    {
+        "name": "Union Bank of India",
+        "aliases": ["UBI"],
+        "domains": ["unionbankofindia.co.in"],
+        "full_names": [r"\bunion\s+bank\s+of\s+india\b"],
+        "short_patterns": [r"\bunion\s+bank\b"]
+    },
+    {
+        "name": "Punjab National Bank",
+        "aliases": ["PNB"],
+        "domains": ["pnbindia.in", "pnb.bank"],
+        "full_names": [r"\bpunjab\s+national\s+bank\b", r"\bpunjab\s+national\b"],
+        "short_patterns": [r"\bpnb\b"]
+    },
+    {
+        "name": "Canara Bank",
+        "aliases": [],
+        "domains": ["canarabank.com", "canarabank.in"],
+        "full_names": [r"\bcanara\s+bank\b"],
+        "short_patterns": [r"\bcanara\b"]
+    },
+    {
+        "name": "HDFC Bank",
+        "aliases": [],
+        "domains": ["hdfcbank.com", "hdfcbank.net"],
+        "full_names": [r"\bhdfc\s+bank\b", r"\bhdfc\s+bank\s+ltd\b", r"\bhdfc\s+bank\s+limited\b"],
+        "short_patterns": [r"\bhdfc\b"]
+    },
+    {
+        "name": "ICICI Bank",
+        "aliases": [],
+        "domains": ["icicibank.com"],
+        "full_names": [r"\bicici\s+bank\b", r"\bicici\s+bank\s+ltd\b", r"\bicici\s+bank\s+limited\b"],
+        "short_patterns": [r"\bicici\b"]
+    },
+    {
+        "name": "Axis Bank",
+        "aliases": [],
+        "domains": ["axisbank.com"],
+        "full_names": [r"\baxis\s+bank\b", r"\baxis\s+bank\s+ltd\b"],
+        "short_patterns": [r"\baxis\b"]
+    },
+    {
+        "name": "Kotak Mahindra Bank",
+        "aliases": ["Kotak Bank"],
+        "domains": ["kotak.com"],
+        "full_names": [r"\bkotak\s+mahindra\s+bank\b", r"\bkotak\s+mahindra\b", r"\bkotak\s+bank\b"],
+        "short_patterns": [r"\bkotak\b"]
+    },
+    {
+        "name": "IDFC FIRST Bank",
+        "aliases": ["IDFC Bank"],
+        "domains": ["idfcfirstbank.com"],
+        "full_names": [r"\bidfc\s+first\s+bank\b", r"\bidfc\s+bank\b", r"\bidfc\s+first\b"],
+        "short_patterns": [r"\bidfc\b"]
+    },
+    {
+        "name": "Yes Bank",
+        "aliases": [],
+        "domains": ["yesbank.in", "yesbank.com"],
+        "full_names": [r"\byes\s+bank\b"],
+        "short_patterns": [r"\byes\s+bank\b"]
+    },
+    {
+        "name": "IndusInd Bank",
+        "aliases": [],
+        "domains": ["indusind.com"],
+        "full_names": [r"\bindusind\s+bank\b"],
+        "short_patterns": [r"\bindusind\b"]
+    }
 ]
 
 def detect_bank(text):
-    text_upper = text.upper()
-    for bank_name, keywords in BANK_PATTERNS.items():
-        for keyword in keywords:
-            if keyword.upper() in text_upper:
-                return bank_name
+    if not text:
+        return "Unknown Bank"
+    
+    text_lower = text.lower()
+    # Check top/header area (first 1500 chars) with higher weight
+    header_text = text_lower[:1500]
+    
+    scores = {}
+    for rule in BANK_RULES:
+        score = 0
+        name = rule["name"]
+        
+        # 1. Domains: Very high confidence
+        for domain in rule.get("domains", []):
+            if domain in header_text:
+                score += 50
+            elif domain in text_lower:
+                score += 25
+                
+        # 2. Full names regex: High confidence
+        for pattern in rule.get("full_names", []):
+            if re.search(pattern, header_text, re.IGNORECASE):
+                score += 30
+            elif re.search(pattern, text_lower, re.IGNORECASE):
+                score += 15
+                
+        # 3. Short patterns / abbreviations (only with word boundary, lower weight)
+        for pattern in rule.get("short_patterns", []):
+            if re.search(pattern, header_text, re.IGNORECASE):
+                score += 10
+            elif re.search(pattern, text_lower, re.IGNORECASE):
+                score += 2
+                
+        if score > 0:
+            scores[name] = score
+            
+    if scores:
+        best_bank = max(scores, key=scores.get)
+        if scores[best_bank] >= 5:
+            return best_bank
+            
     return "Unknown Bank"
 
 def parse_date(date_str):

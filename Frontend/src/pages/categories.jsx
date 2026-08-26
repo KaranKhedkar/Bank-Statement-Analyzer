@@ -176,12 +176,14 @@ export default function Categories() {
   // 1. Pull setTransactions from the store as well
   const { categoryData, setTransactions } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   // 2. Fetch data automatically if the store is empty (like after a refresh)
   useEffect(() => {
     const fetchExistingData = async () => {
       // If we already have data in memory, skip fetching
       if (categoryData && categoryData.length > 0) return;
+      if (hasFetched) return;
 
       setIsLoading(true);
       try {
@@ -200,11 +202,12 @@ export default function Categories() {
         console.error("Failed to fetch data on refresh:", err);
       } finally {
         setIsLoading(false);
+        setHasFetched(true);
       }
     };
 
     fetchExistingData();
-  }, [categoryData, setTransactions]);
+  }, [categoryData, setTransactions, hasFetched]);
 
   // 3. Safety Check: If data is empty, Math.max will crash the page. Default to 0.
   const totalSpend = categoryData.reduce((acc, curr) => acc + curr.spend, 0);
