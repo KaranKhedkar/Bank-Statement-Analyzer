@@ -472,7 +472,7 @@
 
 
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Check, X, AlertTriangle, ArrowUpRight, Loader2, ShieldAlert, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 
@@ -495,18 +495,16 @@ export default function Anomalies() {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  // useEffect(() => {
-  //   fetchAnomalies();
-  // }, [fetchAnomalies]);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-  const currentAnomalies = useAppStore.getState().anomalies;
-  
-  if (currentAnomalies.length === 0) {
-    fetchAnomalies();
-  }
-}, [fetchAnomalies]);
+    const currentAnomalies = useAppStore.getState().anomalies;
+    
+    if (currentAnomalies.length === 0 && !hasFetched.current) {
+      hasFetched.current = true;
+      fetchAnomalies();
+    }
+  }, [fetchAnomalies]);
 
   // Pagination Logic
   const pendingItems = useMemo(

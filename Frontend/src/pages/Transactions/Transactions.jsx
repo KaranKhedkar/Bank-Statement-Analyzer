@@ -106,10 +106,12 @@ export default function Transactions() {
   const [activeView, setActiveView] = useState('trends');
   const { transactions, setTransactions } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       if (transactions && transactions.length > 0) return;
+      if (hasFetched) return;
       setIsLoading(true);
       try {
         const { data, error } = await supabase
@@ -122,10 +124,11 @@ export default function Transactions() {
         console.error('Failed to fetch transactions:', err);
       } finally {
         setIsLoading(false);
+        setHasFetched(true);
       }
     };
     fetchData();
-  }, [transactions, setTransactions]);
+  }, [transactions, setTransactions, hasFetched]);
 
   if (isLoading) {
     return (

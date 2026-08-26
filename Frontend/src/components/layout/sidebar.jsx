@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   UploadCloud,
@@ -10,8 +10,16 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
+import { useAppStore } from "../../store/useAppStore";
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+  const { logout } = useAppStore();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
   const navItems = [
     { path: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
     { path: "/dashboard/upload", label: "Upload Data", icon: UploadCloud },
@@ -90,11 +98,9 @@ export default function Sidebar() {
             <Settings size={16} />
           </button>
 
-          <Link to="/">
-            <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-stone-400 hover:bg-rose-500/10 hover:text-rose-400 rounded-xl font-medium transition-colors border border-transparent hover:border-rose-500/20">
-              <LogOut size={16} />
-            </button>
-          </Link>
+          <button onClick={handleLogout} className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-stone-400 hover:bg-rose-500/10 hover:text-rose-400 rounded-xl font-medium transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer">
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
     </aside>
