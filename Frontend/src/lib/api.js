@@ -117,7 +117,8 @@
 
 import { supabase } from './supabaseClient'
 
-const BASE_URL = 'http://127.0.0.1:8000/api'
+// Fallback to localhost if the env var isn't set (useful for local dev)
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
 
 const getAuthHeader = async () => {
   const { data } = await supabase.auth.getSession()

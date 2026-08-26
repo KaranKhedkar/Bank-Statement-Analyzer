@@ -206,7 +206,8 @@ export const useAppStore = create((set, get) => ({
       if (!token) throw new Error("No active session");
 
       // Note: Consider moving this URL to your import.meta.env variables later!
-      const response = await fetch('http://127.0.0.1:8000/api/forecast', {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
+      const response = await fetch(`${baseUrl}/forecast`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
