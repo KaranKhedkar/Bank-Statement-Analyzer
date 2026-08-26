@@ -198,3 +198,60 @@ export const getForecast = async () => {
   if (!response.ok) throw new Error("Failed to fetch forecast")
   return response.json()
 }
+
+// --- COPILOT AGENT ENDPOINTS ---
+export const sendCopilotMessage = async (message, history = []) => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/copilot/chat`, {
+    method: "POST",
+    headers: { ...authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || "Failed to communicate with Financial Copilot")
+  }
+  return response.json()
+}
+
+export const runWhatIfSimulation = async (adjustments, monthlyInvestment = 0, expectedRoi = 8.0, months = 6) => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/copilot/what-if`, {
+    method: "POST",
+    headers: { ...authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      adjustments,
+      monthly_investment: monthlyInvestment,
+      expected_annual_return_pct: expectedRoi,
+      projection_months: months,
+    }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || "Failed to run What-If simulation")
+  }
+  return response.json()
+}
+
+export const getProactiveInsights = async () => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/copilot/proactive-insights`, {
+    headers: authHeader,
+  })
+  if (!response.ok) throw new Error("Failed to fetch AI proactive insights")
+  return response.json()
+}
+
+export const explainAnomaly = async (anomalyId) => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/copilot/explain-anomaly`, {
+    method: "POST",
+    headers: { ...authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify({ anomaly_id: anomalyId }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || "Failed to generate anomaly explanation")
+  }
+  return response.json()
+}

@@ -9,6 +9,8 @@ import {
   Cpu,
   LogOut,
   Settings,
+  Sparkles,
+  PieChart
 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
 
@@ -20,16 +22,24 @@ export default function Sidebar() {
     await logout();
     navigate("/");
   };
+
   const navItems = [
     { path: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
+    { 
+      path: "/dashboard/copilot", 
+      label: "AI Copilot", 
+      icon: Sparkles, 
+      badge: "AI Agent",
+      glow: true 
+    },
     { path: "/dashboard/upload", label: "Upload Data", icon: UploadCloud },
     {
       path: "/dashboard/transactions",
       label: "Transactions",
       icon: ReceiptText,
     },
+    { path: "/dashboard/categories", label: "Categories", icon: PieChart },
     { path: "/dashboard/forecast", label: "Forecast", icon: TrendingUp },
-    { path: "/dashboard/categories", label: "Categories", icon: ShieldAlert },
     { path: "/dashboard/anomalies", label: "Anomalies", icon: ShieldAlert },
     { path: "/dashboard/model-info", label: "Model Info", icon: Cpu },
   ];
@@ -80,10 +90,15 @@ export default function Sidebar() {
 
                   <Icon
                     size={18}
-                    className={isActive ? "text-indigo-400" : "text-stone-500"}
+                    className={isActive ? "text-indigo-400" : (item.glow ? "text-purple-400" : "text-stone-500")}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
-                  {item.label}
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.badge && (
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      {item.badge}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>

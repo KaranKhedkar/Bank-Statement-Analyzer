@@ -145,7 +145,7 @@
 
 import { create } from 'zustand'
 import { supabase } from '../lib/supabaseClient'
-import { getAnomalies, updateAnomalyStatus as apiUpdateStatus, detectAnomalies as apiDetect } from '../lib/api'
+import { getAnomalies, updateAnomalyStatus as apiUpdateStatus, detectAnomalies as apiDetect, getProactiveInsights } from '../lib/api'
 
 export const useAppStore = create((set, get) => ({
   // --- Auth & Profile ---
@@ -169,6 +169,62 @@ export const useAppStore = create((set, get) => ({
   // --- Forecast Data ---
   forecastData: {},
   isForecastLoading: false,
+
+  // --- Copilot Data & Actions ---
+  copilotMessages: [
+    {
+      id: "welcome",
+      role: "assistant",
+      content: "👋 Hello! I am your **AI Financial Copilot**. I have analyzed your bank statement transactions and can help you with:\n\n• **Spending Breakdown**: *'How much did I spend on Food & Dining?'*\n• **Anomalies & Shift Analysis**: *'Why did my expenses spike last month?'*\n• **What-If Simulations**: *'What if I cut shopping by 20%?'*\n• **Dynamic Visualizations**: *'Show me a bar chart of top categories'*",
+      toolCalls: [],
+      chart: null,
+      suggestedActions: [
+        "How much did I spend on Food & Dining?",
+        "Compare spending with last month",
+        "What if I reduce Food & Dining by 20%?",
+        "Show me all recurring subscriptions"
+      ],
+      timestamp: new Date().toISOString(),
+    }
+  ],
+  isCopilotLoading: false,
+  proactiveInsights: [],
+  isInsightsLoading: false,
+
+  addCopilotMessage: (msg) => set((state) => ({
+    copilotMessages: [...state.copilotMessages, { id: Date.now().toString(), timestamp: new Date().toISOString(), ...msg }]
+  })),
+
+  clearCopilotMessages: () => set({
+    copilotMessages: [
+      {
+        id: "welcome",
+        role: "assistant",
+        content: "👋 Conversation cleared! What financial question or scenario would you like to explore?",
+        suggestedActions: [
+          "How much did I spend on Food & Dining?",
+          "Compare spending with last month",
+          "What if I reduce Shopping by 15%?",
+          "Find my highest expense anomalies"
+        ],
+        timestamp: new Date().toISOString()
+      }
+    ]
+  }),
+
+  setCopilotLoading: (val) => set({ isCopilotLoading: val }),
+
+  fetchProactiveInsights: async () => {
+    set({ isInsightsLoading: true });
+    try {
+      const data = await getProactiveInsights();
+      set({ proactiveInsights: data.insights || [] });
+    } catch (err) {
+      console.error("Fetch insights failed:", err);
+    } finally {
+      set({ isInsightsLoading: false });
+    }
+  },
 
   // --- Actions ---
   setUploadResult: (result) => set({
@@ -199,13 +255,11 @@ export const useAppStore = create((set, get) => ({
   fetchForecast: async () => {
     set({ isForecastLoading: true });
     try {
-      // ✅ FIX 1: Safely get the token directly from Supabase
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       
       if (!token) throw new Error("No active session");
 
-      // Note: Consider moving this URL to your import.meta.env variables later!
       const response = await fetch('http://127.0.0.1:8000/api/forecast', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -270,7 +324,9 @@ export const useAppStore = create((set, get) => ({
       transactions: [],
       categoryData: [],
       anomalies: [],
-      forecastData: {}, // ✅ FIX 2: Clear forecast data on logout
+      forecastData: {},
+      copilotMessages: [],
+      proactiveInsights: [],
       isProcessing: false,
     })
   },
@@ -282,7 +338,9 @@ export const useAppStore = create((set, get) => ({
     transactions: [],
     categoryData: [],
     anomalies: [],
-    forecastData: {}, // ✅ FIX 2: Clear forecast data on reset
+    forecastData: {},
+    copilotMessages: [],
+    proactiveInsights: [],
     isProcessing: false,
   })
 }))

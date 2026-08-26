@@ -51,10 +51,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Homepage from './pages/homepage';
 import AppLayout from './components/layout/AppLayout';
 import Overview from './pages/overview';
+import Copilot from './pages/copilot';
 import UploadData from './pages/upload';
 import Transactions from './pages/Transactions/Transactions';
 import Forecast from './pages/forecast';
-import Anomalies from './pages/aromalies';
+import Anomalies from './pages/anomalies';
 import ModelInfo from './pages/modelInfo';
 import Categories from './pages/categories';
 import Auth from './pages/Auth';
@@ -76,6 +77,7 @@ export default function App() {
           <Route index element={<Navigate to="overview" replace />} />
 
           <Route path="overview" element={<Overview />} />
+          <Route path="copilot" element={<Copilot />} />
           <Route path="upload" element={<UploadData />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="forecast" element={<Forecast />} />

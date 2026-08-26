@@ -9,30 +9,17 @@ DATE_FORMATS = [
     "%d/%b/%Y", "%d %b %y", "%d-%b-%y",
 ]
 
-BANK_KEYWORDS = {
-    "HDFC Bank": ["hdfc"],
-    "SBI": ["sbi", "state bank"],
-    "ICICI Bank": ["icici"],
-    "Axis Bank": ["axis"],
-    "Kotak Bank": ["kotak"],
-    "Paytm": ["paytm"],
-    "PhonePe": ["phonepe"],
-    "GPay": ["gpay", "google pay"],
-}
+from parsers.pdf_parser import detect_bank
 
 def detect_bank_from_csv(df, filename=""):
-    filename_lower = filename.lower()
-    for bank, keywords in BANK_KEYWORDS.items():
-        for kw in keywords:
-            if kw in filename_lower:
-                return bank
-    # Check column names
-    cols = ' '.join(df.columns.tolist()).lower()
-    for bank, keywords in BANK_KEYWORDS.items():
-        for kw in keywords:
-            if kw in cols:
-                return bank
-    return "Unknown Bank"
+    if filename:
+        detected = detect_bank(filename)
+        if detected != "Unknown Bank":
+            return detected
+            
+    cols_text = ' '.join(str(c) for c in df.columns)
+    sample_text = cols_text + "\n" + '\n'.join(' '.join(str(v) for v in row) for row in df.head(10).values)
+    return detect_bank(sample_text)
 
 def parse_date(date_str):
     date_str = str(date_str).strip()
