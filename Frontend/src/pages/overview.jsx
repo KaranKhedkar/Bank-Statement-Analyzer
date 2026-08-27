@@ -221,10 +221,12 @@ export default function Overview() {
       return { kpis: null, chartData: [], pieData: [] };
     }
 
-    // 1. Calculate 30-day Spend Trends
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    // 1. Calculate 30-day Spend Trends based on the most recent transaction date
+    const validDates = transactions.map(t => new Date(t.date).getTime()).filter(t => !isNaN(t));
+    const maxDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : new Date();
+    
+    const thirtyDaysAgo = new Date(maxDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(maxDate.getTime() - 60 * 24 * 60 * 60 * 1000);
 
     let spend30d = 0;
     let spendPrev30d = 0;

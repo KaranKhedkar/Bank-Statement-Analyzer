@@ -251,6 +251,12 @@ import re
 import io
 from datetime import datetime
 
+DATE_FORMATS = [
+    "%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y", "%d-%m-%y",
+    "%Y-%m-%d", "%d %b %Y", "%d %B %Y", "%d-%b-%Y",
+    "%d/%b/%Y", "%d %b %y", "%d-%b-%y",
+]
+
 BANK_RULES = [
     {
         "name": "State Bank of India",
@@ -528,12 +534,68 @@ def parse_pdf(contents):
                 full_text += page_text
                 if bank_name == "Unknown Bank":
                     bank_name = detect_bank(full_text)
-                tables = page.extract_tables()
+                tables = page.extract_tables({
+                    "vertical_strategy": "text", 
+                    "horizontal_strategy": "text"
+                })
                 for table in tables:
                     page_transactions, prev_columns = extract_transactions_from_table(table, bank_name, prev_columns)
                     transactions.extend(page_transactions)
             if not transactions and full_text:
                 transactions = parse_text_based(full_text, bank_name)
     except Exception as e:
+        print(f"PDF parsing error: {e}")
         return [], "Unknown Bank"
     return transactions, bank_name
+
+def parse_text_based(text, bank_name):
+    transactions = []
+    lines = text.split('\n')
+
+    # Matches Date, Description, and extracts the last 3 possible columns (Debit, Credit, Balance)
+    # where they are either numbers or dashes.
+    pattern = re.compile(
+        r'^(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+\w{3}\s+\d{2,4})\s+(.+?)\s+([\d,]+\.\d{2}|-)(?:\s+([\d,]+\.\d{2}|-))?(?:\s+([\d,]+\.\d{2}|-))?\s*$'
+    )
+
+    for line in lines:
+        match = pattern.search(line)
+        if match:
+            groups = match.groups()
+            date_str = groups[0]
+            description = groups[1]
+            
+            # The last 3 groups are potential debit, credit, balance
+            tail_vals = [clean_amount(g) for g in groups[2:] if g and clean_amount(g) is not None]
+            
+            amount = None
+            balance = None
+            if len(tail_vals) == 3:
+                # Debit, Credit, Balance
+                amount = tail_vals[0] if tail_vals[0] else tail_vals[1]
+                balance = tail_vals[2]
+            elif len(tail_vals) == 2:
+                # Amount, Balance OR Debit, Credit without balance
+                # Usually last column is balance in a 2-number trailing match
+                amount = tail_vals[0]
+                balance = tail_vals[1]
+            elif len(tail_vals) >= 1:
+                # Just one number found
+                amount = tail_vals[0]
+
+            parsed_date = parse_date(date_str)
+
+            if parsed_date and amount and amount > 0:
+                txn_type = detect_transaction_type(line, str(amount))
+                transactions.append({
+                    "date": parsed_date,
+                    "description": description.strip(),
+                    "raw_description": description.strip(),
+                    "amount": round(amount, 2),
+                    "type": txn_type,
+                    "balance": round(balance, 2) if balance is not None else None,
+                    "bank_name": bank_name,
+                    "category": "Uncategorized"
+                })
+
+    return transactions

@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 import os
 from dotenv import load_dotenv
 
+from fastapi.concurrency import run_in_threadpool
 from agent.copilot_engine import run_copilot_turn
 from agent.tools import (
     simulate_what_if,
@@ -95,12 +96,13 @@ async def chat_with_copilot(
     }
 
     # 4. Run copilot agentic turn
-    result = run_copilot_turn(
-        user_message=payload.message,
-        conversation_history=payload.history,
+    # Offload synchronous Gemini API calls to a thread so FastAPI doesn't freeze
+    result = await run_in_threadpool(
+        run_copilot_turn, 
+        user_message=payload.message, 
+        conversation_history=payload.history, 
         user_data=user_data
     )
-
     return result
 
 @router.post("/copilot/what-if")

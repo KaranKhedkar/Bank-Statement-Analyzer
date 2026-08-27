@@ -391,7 +391,10 @@ def run_isolation_forest(transactions: list) -> list:
 
     features = debit_df[["amount", "day_of_week", "category_encoded"]].values
     
-    clf = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
+    # Ensure at least 1 anomaly is flagged if there are debits
+    contamination = max(0.05, 1.0 / len(debit_df))
+    
+    clf = IsolationForest(n_estimators=100, contamination=contamination, random_state=42)
     clf.fit(features)
 
     raw_scores = clf.decision_function(features)

@@ -16,7 +16,8 @@ export default function Anomalies() {
     updateAnomalyStatus, 
     runDetection, 
     isAnomaliesLoading,
-    isProcessing 
+    isProcessing,
+    hasFetchedAnomalies 
   } = useAppStore();
 
   const [error, setError] = useState('');
@@ -25,15 +26,11 @@ export default function Anomalies() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const itemsPerPage = 10;
-  const hasFetched = useRef(false);
-
   useEffect(() => {
-    const currentAnomalies = useAppStore.getState().anomalies;
-    if (currentAnomalies.length === 0 && !hasFetched.current) {
-      hasFetched.current = true;
+    if (anomalies.length === 0 && !hasFetchedAnomalies) {
       fetchAnomalies();
     }
-  }, [fetchAnomalies]);
+  }, [anomalies.length, hasFetchedAnomalies, fetchAnomalies]);
 
   // Pagination Logic
   const pendingItems = useMemo(
@@ -70,7 +67,7 @@ export default function Anomalies() {
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-4">
         <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-        <p className="text-stone-400 font-medium">Analyzing transaction variance & patterns...</p>
+        <p className="text-stone-400 font-medium">Fetching anomaly data...</p>
       </div>
     );
   }

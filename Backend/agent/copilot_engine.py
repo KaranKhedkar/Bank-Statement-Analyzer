@@ -2,8 +2,7 @@ import os
 import json
 import re
 from typing import List, Dict, Any, Optional
-from google import genai
-from google.genai import types
+from groq import Groq
 from dotenv import load_dotenv
 
 from .tools import (
@@ -19,11 +18,11 @@ from .rag import build_financial_context, retrieve_relevant_transactions
 
 load_dotenv()
 
-# Initialize Google Gemini client
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+# Initialize Groq client
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = "openai/gpt-oss-120b"
 
 SYSTEM_INSTRUCTION = """
 You are the AI Financial Copilot for "Bank Statement Analyzer", a state-of-the-art personal finance telemetry platform.
@@ -132,88 +131,109 @@ def execute_tool_call(tool_name: str, args: dict, user_data: dict) -> dict:
     return {"error": f"Tool '{tool_name}' not recognized."}
 
 
-# Tool Declarations for Gemini Function Calling
+# Tool Declarations for Groq/OpenAI Function Calling
 AGENT_TOOLS = [
     {
-        "name": "get_spending_summary",
-        "description": "Calculates total inflow, outflow, net savings, average daily burn, and categorical spend distribution for a given timeframe (30d, 90d, 180d, year, all) and optional category.",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "timeframe": {"type": "STRING", "description": "Time window: '30d', '90d', '180d', 'year', or 'all'"},
-                "category": {"type": "STRING", "description": "Optional category filter like 'Food & Dining', 'Shopping', etc."},
-                "tx_type": {"type": "STRING", "description": "'debit', 'credit', or 'all'"}
+        "type": "function",
+        "function": {
+            "name": "get_spending_summary",
+            "description": "Calculates total inflow, outflow, net savings, average daily burn, and categorical spend distribution for a given timeframe (30d, 90d, 180d, year, all) and optional category.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "timeframe": {"type": "string", "description": "Time window: '30d', '90d', '180d', 'year', or 'all'"},
+                    "category": {"type": "string", "description": "Optional category filter like 'Food & Dining', 'Shopping', etc."},
+                    "tx_type": {"type": "string", "description": "'debit', 'credit', or 'all'"}
+                }
             }
         }
     },
     {
-        "name": "search_transactions",
-        "description": "Searches and filters specific individual transactions by keyword, merchant name, category, date range, or amount range.",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "query": {"type": "STRING", "description": "Search keyword (merchant, note, description)"},
-                "category": {"type": "STRING", "description": "Specific category name"},
-                "min_amount": {"type": "NUMBER", "description": "Minimum transaction amount in INR"},
-                "max_amount": {"type": "NUMBER", "description": "Maximum transaction amount in INR"},
-                "start_date": {"type": "STRING", "description": "Start date YYYY-MM-DD"},
-                "end_date": {"type": "STRING", "description": "End date YYYY-MM-DD"},
-                "limit": {"type": "INTEGER", "description": "Max results to return (default 15)"}
+        "type": "function",
+        "function": {
+            "name": "search_transactions",
+            "description": "Searches and filters specific individual transactions by keyword, merchant name, category, date range, or amount range.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search keyword (merchant, note, description)"},
+                    "category": {"type": "string", "description": "Specific category name"},
+                    "min_amount": {"type": "number", "description": "Minimum transaction amount in INR"},
+                    "max_amount": {"type": "number", "description": "Maximum transaction amount in INR"},
+                    "start_date": {"type": "string", "description": "Start date YYYY-MM-DD"},
+                    "end_date": {"type": "string", "description": "End date YYYY-MM-DD"},
+                    "limit": {"type": "integer", "description": "Max results to return (default 15)"}
+                }
             }
         }
     },
     {
-        "name": "compare_periods",
-        "description": "Compares spending between two time periods (e.g. Current Month vs Previous Month or Last 30d vs Prior 30d) and highlights the biggest categorical drivers of increase/decrease.",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "period_type": {"type": "STRING", "description": "'month_over_month' or '30d'"},
-                "category": {"type": "STRING", "description": "Optional category filter"}
+        "type": "function",
+        "function": {
+            "name": "compare_periods",
+            "description": "Compares spending between two time periods (e.g. Current Month vs Previous Month or Last 30d vs Prior 30d) and highlights the biggest categorical drivers of increase/decrease.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "period_type": {"type": "string", "description": "'month_over_month' or '30d'"},
+                    "category": {"type": "string", "description": "Optional category filter"}
+                }
             }
         }
     },
     {
-        "name": "get_anomalies_analysis",
-        "description": "Retrieves transactions flagged as outliers/anomalies by the Isolation Forest model along with statistical deviations (z-scores, variance from category mean).",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {}
-        }
-    },
-    {
-        "name": "get_forecast_data",
-        "description": "Retrieves future monthly expense projections and confidence intervals modeled by Facebook Prophet / Weighted Moving Average.",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "category": {"type": "STRING", "description": "Optional specific category to inspect"}
+        "type": "function",
+        "function": {
+            "name": "get_anomalies_analysis",
+            "description": "Retrieves transactions flagged as outliers/anomalies by the Isolation Forest model along with statistical deviations (z-scores, variance from category mean).",
+            "parameters": {
+                "type": "object",
+                "properties": {}
             }
         }
     },
     {
-        "name": "simulate_what_if",
-        "description": "Simulates hypothetical changes in spending (e.g. reduce Food & Dining by 20%, Shopping by 15%) and projects monthly cash savings, compound investment growth, and future trajectory.",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "adjustments": {
-                    "type": "OBJECT", 
-                    "description": "Category reduction decimals, e.g. {'Food & Dining': -0.20, 'Shopping': -0.15}"
+        "type": "function",
+        "function": {
+            "name": "get_forecast_data",
+            "description": "Retrieves future monthly expense projections and confidence intervals modeled by Facebook Prophet / Weighted Moving Average.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {"type": "string", "description": "Optional specific category to inspect"}
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "simulate_what_if",
+            "description": "Simulates hypothetical changes in spending (e.g. reduce Food & Dining by 20%, Shopping by 15%) and projects monthly cash savings, compound investment growth, and future trajectory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "adjustments": {
+                        "type": "object", 
+                        "description": "Category reduction decimals, e.g. {'Food & Dining': -0.20, 'Shopping': -0.15}"
+                    },
+                    "monthly_investment": {"type": "number", "description": "Additional monthly SIP / investment amount in INR"},
+                    "expected_annual_return_pct": {"type": "number", "description": "Expected annual ROI percentage (default 8.0)"},
+                    "projection_months": {"type": "integer", "description": "Months to project forward (default 6)"}
                 },
-                "monthly_investment": {"type": "NUMBER", "description": "Additional monthly SIP / investment amount in INR"},
-                "expected_annual_return_pct": {"type": "NUMBER", "description": "Expected annual ROI percentage (default 8.0)"},
-                "projection_months": {"type": "INTEGER", "description": "Months to project forward (default 6)"}
-            },
-            "required": ["adjustments"]
+                "required": ["adjustments"]
+            }
         }
     },
     {
-        "name": "get_recurring_subscriptions",
-        "description": "Scans statement transactions to detect fixed repeating charges (e.g. Netflix, Spotify, gym, rent, utility bills, SIPs).",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {}
+        "type": "function",
+        "function": {
+            "name": "get_recurring_subscriptions",
+            "description": "Scans statement transactions to detect fixed repeating charges (e.g. Netflix, Spotify, gym, rent, utility bills, SIPs).",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
         }
     }
 ]
@@ -229,12 +249,12 @@ def run_copilot_turn(
     """
     global client
     if not client:
-        GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-        if GEMINI_KEY:
-            client = genai.Client(api_key=GEMINI_KEY)
+        GROQ_KEY = os.getenv("GROQ_API_KEY")
+        if GROQ_KEY:
+            client = Groq(api_key=GROQ_KEY)
         else:
             return {
-                "response": "Gemini API Key is missing. Please set `GEMINI_API_KEY` in `Backend/.env`.",
+                "response": "Groq API Key is missing. Please set `GROQ_API_KEY` in `Backend/.env`.",
                 "tool_calls": [],
                 "chart": None,
                 "suggested_actions": []
@@ -255,50 +275,49 @@ def run_copilot_turn(
             for t in relevant_txs
         ])
 
-    # Convert conversation history to Gemini contents format
-    contents = []
-    
-    # System context in first turn or instruction
+    # Convert conversation history to Groq/OpenAI messages format
     full_system_context = f"{SYSTEM_INSTRUCTION}\n\n{rag_context}\n{relevant_txs_str}"
     
+    messages = [{"role": "system", "content": full_system_context}]
+    
     for msg in conversation_history[-6:]:
-        role = "user" if msg.get("role") == "user" else "model"
-        contents.append(types.Content(
-            role=role,
-            parts=[types.Part.from_text(text=msg.get("content", ""))]
-        ))
+        role = "user" if msg.get("role") == "user" else "assistant"
+        messages.append({
+            "role": role,
+            "content": msg.get("content", "")
+        })
 
     # Add current user prompt
-    contents.append(types.Content(
-        role="user",
-        parts=[types.Part.from_text(text=user_message)]
-    ))
+    messages.append({"role": "user", "content": user_message})
 
     executed_tool_traces = []
 
     try:
         # Step 1: Initial call with function calling enabled
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=MODEL_NAME,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=full_system_context,
-                tools=[{"function_declarations": AGENT_TOOLS}],
-                temperature=0.3
-            )
+            messages=messages,
+            tools=AGENT_TOOLS,
+            tool_choice="auto",
+            temperature=0.3
         )
 
-        # Step 2: Handle function calls loop (up to 3 sequential tool executions)
         max_tool_iterations = 3
         curr_iter = 0
+        message = response.choices[0].message
 
-        while response.function_calls and curr_iter < max_tool_iterations:
+        while message.tool_calls and curr_iter < max_tool_iterations:
             curr_iter += 1
-            tool_responses = []
+            
+            # Append assistant's function call message
+            messages.append(message.model_dump(exclude_unset=True))
 
-            for fc in response.function_calls:
-                fn_name = fc.name
-                fn_args = fc.args or {}
+            for fc in message.tool_calls:
+                fn_name = fc.function.name
+                try:
+                    fn_args = json.loads(fc.function.arguments)
+                except:
+                    fn_args = {}
                 
                 # Execute tool
                 tool_result = execute_tool_call(fn_name, fn_args, user_data)
@@ -310,34 +329,25 @@ def run_copilot_turn(
                     "result_summary": str(tool_result)[:180] + "..." if len(str(tool_result)) > 180 else str(tool_result)
                 })
 
-                tool_responses.append(
-                    types.Part.from_function_response(
-                        name=fn_name,
-                        response={"result": tool_result}
-                    )
-                )
+                # Append function response message
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": fc.id,
+                    "name": fn_name,
+                    "content": json.dumps(tool_result)
+                })
 
-            # Append assistant's function call message
-            contents.append(response.candidates[0].content)
-
-            # Append function response message
-            contents.append(types.Content(
-                role="tool",
-                parts=tool_responses
-            ))
-
-            # Call Gemini with the tool outputs
-            response = client.models.generate_content(
+            # Call Groq with the tool outputs
+            response = client.chat.completions.create(
                 model=MODEL_NAME,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=full_system_context,
-                    tools=[{"function_declarations": AGENT_TOOLS}],
-                    temperature=0.3
-                )
+                messages=messages,
+                tools=AGENT_TOOLS,
+                tool_choice="auto",
+                temperature=0.3
             )
+            message = response.choices[0].message
 
-        raw_text = response.text or "I have processed your financial data."
+        raw_text = message.content or "I have processed your financial data."
 
         # Parse copilot metadata (chart + suggested actions)
         chart_data = None
@@ -388,7 +398,7 @@ def run_copilot_turn(
         }
 
     except Exception as e:
-        print(f"❌ Gemini Copilot Error: {e}")
+        print(f"❌ Groq Copilot Error: {e}")
         # Fallback response using pure deterministic tools
         summary = get_spending_summary(transactions, timeframe="30d")
         return {

@@ -761,7 +761,7 @@ export default function TrendsView({ data }) {
             <h2 className="text-sm font-bold text-white">Balance Trajectory</h2>
             <p className="text-xs text-stone-500 font-mono mt-0.5">Real-time closing balance tracking</p>
           </div>
-          <div className="h-70 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
                 <defs>

@@ -1,4 +1,4 @@
-from google import genai
+from groq import Groq
 import json
 import re
 import os
@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 CATEGORIES = [
     "Food & Dining", "Shopping", "Transport", "Health & Medical",
@@ -52,14 +52,23 @@ Respond ONLY with a JSON array in this exact format with no explanation:
 ]"""
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=1,
+            max_completion_tokens=2048,
+            top_p=1,
+            reasoning_effort="medium"
         )
-        response_text = response.text.strip()
+        response_text = completion.choices[0].message.content.strip()
 
         if "```" in response_text:
-            response_text = re.sub(r'```json?\n?', '', response_text)
+            response_text = re.sub(r'```(?:json)?\n?', '', response_text)
             response_text = response_text.replace('```', '').strip()
 
         results = json.loads(response_text)
@@ -82,7 +91,7 @@ Respond ONLY with a JSON array in this exact format with no explanation:
             t.pop('needs_ai', None)
 
     except Exception as e:
-        print(f"[CATEGORIZER ERROR] Gemini API error: {e}")
+        print(f"[CATEGORIZER ERROR] Groq API error: {e}")
         for t in needs_ai:
             t['category'] = 'Other'
             t.pop('needs_ai', None)
