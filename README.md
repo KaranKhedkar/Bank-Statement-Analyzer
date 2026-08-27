@@ -1,144 +1,165 @@
-# AI-Powered Bank Statement Analyzer
+# Bank Statement Analyzer (AI Financial Telemetry)
 
-## 1. Project Title & Overview
+Bank Statement Analyzer is an advanced, AI-powered personal finance telemetry platform. It allows users to upload raw bank statements (PDF/CSV), automatically parses and categorizes transactions using Large Language Models, detects spending anomalies via machine learning, and provides a conversational AI Copilot to interact with financial data. It bridges the gap between static bank statements and dynamic financial intelligence.
 
-**Bank Statement Analyzer** is a full-stack financial telemetry web application designed to automatically parse, categorize, and analyze bank statements. It solves the problem of manual expense tracking by using a hybrid rules-and-AI approach to reliably extract data from messy bank PDFs, detects anomalous spending using unsupervised machine learning, and forecasts future expenses utilizing time-series modeling.
+## 🚀 Key Features
 
-## 2. Key Features
+* **Intelligent Document Parsing**: Automatically extracts and normalizes transaction data, amounts, dates, and closing balances from PDF or CSV bank statements using fallback-aware scraping (`pdfplumber`/regex).
+* **AI Auto-Categorization**: Uses Groq's high-speed inference (`openai/gpt-oss-120b`) to instantly categorize raw merchant descriptions into clean, standardized expense categories.
+* **Agentic Financial Copilot**: A multi-turn AI assistant with tool-calling capabilities that can calculate spending summaries, find specific transactions, simulate hypothetical "What If" scenarios, and dynamically render interactive UI charts based on your questions.
+* **ML Anomaly Detection**: Uses Scikit-learn's Isolation Forest algorithm to detect statistical outliers in your spending, flagging unusually large expenses or abnormal categorical patterns.
+* **Time-Series Forecasting**: Implements Facebook Prophet to project future monthly expenses with confidence intervals, allowing for proactive budget management.
+* **Interactive Dashboards**: State-of-the-art dark-mode UI with glassmorphic elements, featuring Recharts for balance trajectories, income vs. expense bars, and category breakdown charts.
 
-* **Automated PDF Parsing**: Dynamically extracts tabular data from brittle bank statement PDFs using keyword-based column detection, resilient to formatting changes across different banks.
-* **Smart Hybrid Categorization**: Processes transactions through a blazing-fast local rules engine (regex/keywords) and routes uncategorized edge-cases to a batched Google Gemini API fallback.
-* **Unsupervised Anomaly Detection**: Employs an Isolation Forest algorithm to flag unusual spending behavior based on historical variance without requiring labeled training data.
-* **Predictive Forecasting**: Uses Facebook Prophet (for long-term data) and Weighted Moving Average (for short-term data) to project future categorical expenses.
-* **High-Performance Dashboards**: Real-time frontend built with React, Zustand, and Recharts to visualize spending insights, trends, and audit queues.
+## 📸 Screenshots / Demo
 
-## 3. Screenshots / Demo
+*(Add links to screenshots or a demo video here)*
 
-*(Screenshots and demo links can be added here once the repository is published.)*
+## 🛠 Tech Stack
 
-## 4. Tech Stack
+**Frontend**
+* React.js (Vite)
+* Tailwind CSS (Styling)
+* Zustand (State Management)
+* Recharts (Data Visualization)
+* Lucide React (Icons)
 
-* **Frontend**: React, Vite, Tailwind CSS, Zustand (State Management), Recharts
-* **Backend**: FastAPI, Python, Uvicorn, Pydantic
-* **Database & Auth**: Supabase (PostgreSQL, Row-Level Security, Authentication)
-* **AI/ML**: `scikit-learn` (IsolationForest), `prophet`, Google Gemini API
-* **Data Processing**: `pandas`, `pdfplumber`
+**Backend**
+* Python 3 / FastAPI
+* Pandas & NumPy (Data processing)
+* Uvicorn (ASGI Server)
 
-## 5. How It Works
+**Database & Auth**
+* Supabase (PostgreSQL, Row Level Security, JWT Authentication)
 
-1. **Upload & Parse**: The user uploads a PDF/CSV bank statement via the React frontend. The FastAPI backend processes the file using `pdfplumber`, dynamically mapping headers (Date, Description, Amount) to extract raw text.
-2. **Categorization**: Transactions run through a Rules Engine to clean strings (like messy UPI hashes) and match known merchants. Uncategorized transactions are batched into a structured prompt and sent to the Gemini API for JSON-enforced categorization.
-3. **ML Analysis**: Background tasks run `IsolationForest` to calculate anomaly scores for each transaction based on amount and frequency. Simultaneously, `Prophet` aggregates historical categorical data to forecast future expenditures.
-4. **Data Persistence**: Results are saved securely in Supabase with strict Row-Level Security (RLS) policies.
-5. **Visualization**: The frontend fetches these insights and visualizes the financial telemetry across dedicated dashboard views.
+**AI / Machine Learning**
+* Groq SDK (`openai/gpt-oss-120b` for categorization & agentic Copilot)
+* Scikit-learn (`IsolationForest` for anomaly detection)
+* Facebook Prophet (Expense forecasting)
+* `pdfplumber` (Document parsing)
 
-## 6. Project Structure
+## ⚙️ How It Works
+
+1. **Ingestion**: The user authenticates via Supabase and uploads a bank statement (PDF/CSV).
+2. **Parsing & ML Pipeline**: The FastAPI backend routes the file to `pdf_parser.py`. Text and tables are extracted. If standard tabular extraction fails, it falls back to regex-based line parsing.
+3. **AI Categorization**: Uncategorized transactions are batched and sent to Groq. The LLM returns a structured JSON map assigning each transaction to a standard category (e.g., Food & Dining, Utilities).
+4. **Data Persistence**: Cleaned and categorized transactions are inserted into the Supabase PostgreSQL database under the user's isolated Row Level Security (RLS) policy.
+5. **Analytics & Copilot**: The frontend dashboard fetches the data. Users can chat with the Copilot, which uses function-calling to execute Python tools on the backend (e.g., `get_spending_summary`, `simulate_what_if`) and returns natural language insights mixed with interactive Recharts configurations.
+
+## 📁 Project Structure
 
 ```text
 .
-├── Backend/
-│   ├── categorizer/      # Rules engine and Gemini AI fallback logic
-│   ├── routers/          # FastAPI endpoints (upload, anomalies, forecast)
-│   ├── pdf_parser.py     # Dynamic PDF table extraction logic
-│   ├── main.py           # FastAPI application entry point
-│   └── requirements.txt  # Python dependencies
 ├── Frontend/
 │   ├── src/
-│   │   ├── components/   # Reusable UI components and application layout
-│   │   ├── pages/        # Dashboard views (Transactions, Anomalies, Forecast, etc.)
-│   │   ├── store/        # Zustand global state management
-│   │   └── lib/          # API clients (Supabase setup, api.js)
-│   ├── package.json      # Node dependencies
-│   └── vite.config.js    # Vite configuration
-└── predictor.py          # Time-series forecasting logic (Prophet/WMA)
+│   │   ├── components/      # Reusable UI widgets and charts
+│   │   ├── lib/             # API clients (Supabase, fetch wrappers)
+│   │   ├── pages/           # Main route views (Dashboard, Anomalies, Copilot, etc.)
+│   │   └── store/           # Zustand global state management
+│   ├── index.html
+│   └── package.json
+│
+├── Backend/
+│   ├── agent/               # Groq-powered Copilot engine and tool definitions
+│   ├── categorizer/         # AI/LLM transaction categorization logic
+│   ├── models/              # Prophet forecasting implementations
+│   ├── parsers/             # PDF and CSV ingestion engines
+│   ├── routers/             # FastAPI endpoints (upload, anomalies, copilot, forecast)
+│   ├── main.py              # FastAPI application entry point
+│   └── requirements.txt
 ```
 
-## 7. Installation & Setup
+## 💻 Installation & Setup
 
 ### Prerequisites
-* Python 3.9+
-* Node.js 18+
-* Supabase Account
-* Google Gemini API Key
+* Node.js (v18+)
+* Python (3.10+)
+* A Supabase project (URL and Anon Key)
+* A Groq API Key
 
-### Backend Setup
-1. Open a terminal and navigate to the backend directory:
-   ```bash
-   cd Backend
-   ```
-2. Install the required Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Set up your `.env` file (see Environment Variables section below).
-4. Start the FastAPI development server:
-   ```bash
-   uvicorn main:app --reload
-   ```
-
-### Frontend Setup
-1. Open a new terminal and navigate to the frontend directory:
-   ```bash
-   cd Frontend
-   ```
-2. Install Node dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up your frontend `.env` file.
-4. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-
-## 8. Environment Variables
-
-Create `.env` files in both the `Backend` and `Frontend` directories. **Never commit these files to version control.**
-
-**Backend (`Backend/.env`):**
-```env
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_service_role_key
-GEMINI_API_KEY=your_google_gemini_api_key
+### 1. Clone the Repository
+```bash
+git clone <your-repo-url>
+cd Bank-Statement-Analyzer
 ```
 
-**Frontend (`Frontend/.env`):**
+### 2. Backend Setup
+```bash
+cd Backend
+python -m venv venv
+# Activate the virtual environment
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+# source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+### 3. Frontend Setup
+Open a new terminal window:
+```bash
+cd Frontend
+npm install
+```
+
+### 4. Environment Variables Setup
+Create `.env` files in both the Frontend and Backend directories. See the **Environment Variables** section below.
+
+### 5. Run the Application
+**Start the Backend (FastAPI):**
+```bash
+cd Backend
+# Ensure your venv is activated
+uvicorn main:app --reload
+```
+
+**Start the Frontend (React/Vite):**
+```bash
+cd Frontend
+npm run dev
+```
+Access the application at `http://localhost:5173`.
+
+## 🔐 Environment Variables
+
+**Frontend (`Frontend/.env`)**
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_API_BASE_URL=http://127.0.0.1:8000/api
 ```
 
-## 9. Usage
+**Backend (`Backend/.env`)**
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
+GROQ_API_KEY=your_groq_api_key
+```
+*Note: Never commit your `.env` files to version control.*
 
-1. Navigate to `http://localhost:5173` in your browser.
-2. Sign up or log in using the authentication screen.
-3. Use the **Upload Data** page to provide a supported PDF bank statement.
-4. Wait for the engine to parse, categorize, and run machine learning models against the data.
-5. Explore the insights:
-   * **Transactions**: View your ledger and basic insights.
-   * **Categories**: Analyze your spending taxonomy and volume distributions.
-   * **Anomalies**: Audit outlier transactions flagged by the AI.
-   * **Forecast**: View predictive future spending bounds.
+## 📖 Usage
 
-## 10. AI/ML Details
+1. **Sign Up / Log In**: Create an account using the Supabase Auth flow on the login page.
+2. **Upload Data**: Navigate to the "Upload Data" section and drop your Bank PDF or CSV statement. The system will parse and categorize it automatically.
+3. **View Dashboard**: Check the Transactions and Overview tabs to see your parsed closing balances, categorical spending, and net position.
+4. **Detect Anomalies**: Go to the Anomalies tab and click "Run ML Detection" to identify unusual charges.
+5. **Chat with Copilot**: Navigate to the AI Copilot and ask questions like "How much did I spend on Food last month?" or "What if I reduce my Shopping by 20%?" to see interactive charts and savings projections.
 
-* **Hybrid Categorization**: Uses the Gemini API for NLP-based merchant identification. Transactions are intentionally batched into single prompts to minimize token usage, avoid rate limits, and reduce latency.
-* **Anomaly Detection**: Powered by Scikit-Learn's `IsolationForest`. 
-  * *Features*: Transaction amount, day of the week, and encoded category. 
-  * *Why*: It is an unsupervised model, meaning it doesn't require pre-labeled "fraudulent" datasets. It isolates anomalies by evaluating variance against a 5% expected contamination rate.
-* **Predictive Forecasting**: 
-  * *6+ Months Data*: Uses Facebook `Prophet` with yearly seasonality tracking to model trends (e.g., holiday spending spikes).
-  * *<3 Months Data*: Intelligently degrades to a Linear Weighted Moving Average (WMA), as complex time-series models hallucinate without sufficient historical data.
+## 🧠 AI/ML Details
 
-## 11. Future Improvements
+* **Auto-Categorizer**: Utilizes Groq's `openai/gpt-oss-120b` via few-shot prompting to map transaction descriptions to predefined financial categories. Ensures high accuracy for cryptic merchant names.
+* **Anomaly Detection (Isolation Forest)**: An unsupervised learning algorithm from Scikit-learn. It evaluates the transaction amount, day of the week, and categorical frequency. The `contamination` factor dynamically scales based on the dataset size to isolate statistically significant outliers (e.g., a ₹40,000 charge in a category where the user normally spends ₹500).
+* **Time-Series Forecasting**: Uses Facebook Prophet to decompose historical spending into trend and seasonality. It projects a forward-looking expense trajectory with confidence intervals.
+* **Agentic Tool Calling**: The Copilot does not hallucinate numbers. It is provided a set of deterministic Python functions (`get_spending_summary`, `simulate_what_if`, etc.) via the OpenAI function-calling schema. It routes the user's natural language query to the appropriate tool, executes it on the in-memory dataframe, and synthesizes the exact mathematical result into its response.
 
-1. **Broader Bank Support**: Expand the `pdf_parser` keyword mappings to support credit card statements and international banks.
-2. **Custom Budget Thresholds**: Allow users to set manual limits per category and trigger UI alerts when forecasts predict a breach.
-3. **Advanced ML Explanations**: Integrate SHAP (SHapley Additive exPlanations) values to give users deeper insights into exactly *why* a specific transaction was flagged as an anomaly.
-4. **Export Functionality**: Implement CSV/PDF report generation for tax purposes directly from the ledger view.
+## 🚀 Future Improvements
 
-## 12. Author
+1. **Multi-Bank Plaid Integration**: Move beyond manual PDF/CSV uploads by integrating direct bank connections via Plaid or similar aggregators for real-time syncing.
+2. **Custom Budget Alerts**: Allow users to set hard limits on specific categories and receive automated email/push notifications when the forecasting model predicts they will exceed the budget.
+3. **Receipt Matching**: Add OCR capabilities to upload receipt images and automatically match them to their corresponding ledger transactions for tax purposes.
+4. **Advanced Investment Tracking**: Expand the Copilot's "What If" simulator into a full portfolio tracker that monitors real-time market returns on detected SIPs and recurring investments.
 
-Karan Khedkar & Yash Gade
+## 📝 License
 
-
+This project currently has no associated license.

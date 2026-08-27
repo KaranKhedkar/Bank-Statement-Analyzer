@@ -41,7 +41,7 @@ export default function Sidebar() {
     { path: "/dashboard/categories", label: "Categories", icon: PieChart },
     { path: "/dashboard/forecast", label: "Forecast", icon: TrendingUp },
     { path: "/dashboard/anomalies", label: "Anomalies", icon: ShieldAlert },
-    { path: "/dashboard/model-info", label: "Model Info", icon: Cpu },
+    // { path: "/dashboard/model-info", label: "Model Info", icon: Cpu },
   ];
 
   return (
