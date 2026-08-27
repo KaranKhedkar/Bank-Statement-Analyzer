@@ -234,6 +234,20 @@ export const runWhatIfSimulation = async (adjustments, monthlyInvestment = 0, ex
   return response.json()
 }
 
+export const runNaturalWhatIfSimulation = async (query) => {
+  const authHeader = await getAuthHeader()
+  const response = await fetch(`${BASE_URL}/copilot/what-if/natural`, {
+    method: "POST",
+    headers: { ...authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || "Failed to run Natural What-If simulation")
+  }
+  return response.json()
+}
+
 export const getProactiveInsights = async () => {
   const authHeader = await getAuthHeader()
   const response = await fetch(`${BASE_URL}/copilot/proactive-insights`, {

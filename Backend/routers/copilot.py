@@ -52,6 +52,9 @@ class WhatIfRequest(BaseModel):
     expected_annual_return_pct: Optional[float] = 8.0
     projection_months: Optional[int] = 6
 
+class NaturalWhatIfRequest(BaseModel):
+    query: str
+
 class ExplainAnomalyRequest(BaseModel):
     anomaly_id: str
 
@@ -138,6 +141,74 @@ async def run_what_if_scenario(
         projection_months=payload.projection_months or 6
     )
 
+    return sim_result
+
+@router.post("/copilot/what-if/natural")
+async def run_natural_what_if_scenario(
+    payload: NaturalWhatIfRequest,
+    authorization: str = Header(None)
+):
+    import json
+    from agent.copilot_engine import client, MODEL_NAME
+
+    user_supabase, user_id = get_user_supabase(authorization)
+
+    # 1. Parse the natural language query using Groq
+    system_prompt = """
+    You are a financial NLP parser. Extract simulation parameters from the user's natural language query.
+    Return a STRICT JSON object matching this schema exactly:
+    {
+        "adjustments": { "Category Name": -0.20 },  // Percentage cut as a negative decimal. MUST match real categories like "Food & Dining", "Shopping", "Entertainment", "Transport", "Bills", "Other".
+        "monthly_investment": 5000, // Absolute currency amount to invest monthly (integer/float)
+        "expected_annual_return_pct": 12.0, // Expected return percentage (default 8.0 if not specified)
+        "projection_months": 12 // Projection timeframe (default 12 if not specified)
+    }
+    Only output valid JSON. No markdown, no conversational text.
+    """
+
+    try:
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": payload.query}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1
+        )
+        parsed_args = json.loads(completion.choices[0].message.content)
+    except Exception as e:
+        print(f"Error parsing what-if NLP: {e}")
+        raise HTTPException(status_code=400, detail="Could not parse simulation parameters from query.")
+
+    tx_res = user_supabase.table("transactions")\
+        .select("date, amount, type, category")\
+        .eq("user_id", user_id)\
+        .execute()
+    
+    transactions = tx_res.data or []
+    if not transactions:
+        raise HTTPException(status_code=404, detail="No transactions found to simulate.")
+
+    debit_txs = [t for t in transactions if t.get("type") == "debit"]
+    forecast_data = {}
+    if debit_txs:
+        try:
+            forecast_data = predict_all_categories(debit_txs)
+        except Exception as e:
+            print(f"Forecast error in what-if: {e}")
+
+    sim_result = simulate_what_if(
+        transactions=transactions,
+        forecast_data=forecast_data,
+        adjustments=parsed_args.get("adjustments", {}),
+        monthly_investment=float(parsed_args.get("monthly_investment", 0.0)),
+        expected_annual_return_pct=float(parsed_args.get("expected_annual_return_pct", 8.0)),
+        projection_months=int(parsed_args.get("projection_months", 12))
+    )
+
+    # Attach the parsed parameters to the result so the frontend knows what was interpreted
+    sim_result["interpreted_query"] = parsed_args
     return sim_result
 
 @router.get("/copilot/proactive-insights")

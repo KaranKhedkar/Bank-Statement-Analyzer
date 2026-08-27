@@ -5,14 +5,14 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { sendCopilotMessage } from '../lib/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import DynamicChartRenderer from '../components/chat/DynamicChartRenderer';
 import ToolCallBadge from '../components/chat/ToolCallBadge';
 import WhatIfSimulator from '../components/widgets/WhatIfSimulator';
 
 const QUICK_PROMPTS = [
   "How much did I spend on Food & Dining?",
-  "Compare this month with last month",
-  "What if I reduce shopping expenses by 25%?",
   "Show me a bar chart of my top 5 categories",
   "List all recurring subscriptions and bills",
   "Why was my highest transaction flagged?"
@@ -170,41 +170,6 @@ export default function CopilotPage() {
         </div>
       </div>
 
-      {/* Proactive Insights Ribbon */}
-      {proactiveInsights.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {proactiveInsights.map((insight, idx) => (
-            <div
-              key={idx}
-              className="p-3.5 bg-stone-900/40 hover:bg-stone-900/80 backdrop-blur-md rounded-2xl border border-white/5 transition-all duration-200 flex items-start gap-3 group"
-            >
-              <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                insight.type === 'warning' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                insight.type === 'trend' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
-                'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-              }`}>
-                {insight.type === 'warning' ? <AlertTriangle size={15} /> : <Lightbulb size={15} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-white truncate">{insight.title}</p>
-                <p className="text-[11px] text-stone-400 line-clamp-2 mt-0.5">{insight.description}</p>
-                {insight.prompt && (
-                  <button
-                    onClick={() => {
-                      setActiveTab('chat');
-                      handleSendMessage(insight.prompt);
-                    }}
-                    className="mt-1.5 text-[11px] font-semibold text-indigo-300 hover:text-indigo-200 flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <span>{insight.action_text || 'Ask Copilot'}</span>
-                    <ArrowUpRight size={12} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Main Content Area */}
       {activeTab === 'what-if' ? (
@@ -215,7 +180,7 @@ export default function CopilotPage() {
           <div className="px-6 py-3.5 border-b border-white/5 bg-stone-950/40 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-xs font-semibold text-stone-300">Google Gemini 2.0 • Live Financial Knowledge</span>
+              <span className="text-xs font-semibold text-stone-300">GPT-0SS 120B • Live Financial Knowledge</span>
             </div>
 
             <button
@@ -263,8 +228,29 @@ export default function CopilotPage() {
                     )}
 
                     {/* Text Body */}
-                    <div className="whitespace-pre-wrap font-sans text-stone-200 text-[13px] leading-relaxed">
-                      {msg.content}
+                    <div className="font-sans text-stone-200 text-[13px] leading-relaxed">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2" {...props} />,
+                          ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2" {...props} />,
+                          li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                          h1: ({node, ...props}) => <h1 className="text-lg font-bold text-white mb-2 mt-4" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="text-base font-bold text-white mb-2 mt-4" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="text-sm font-bold text-white mb-2 mt-3" {...props} />,
+                          table: ({node, ...props}) => <div className="overflow-x-auto mb-4 mt-2"><table className="w-full text-left border-collapse" {...props} /></div>,
+                          th: ({node, ...props}) => <th className="border-b border-white/10 py-2 px-3 font-semibold text-stone-300 bg-stone-900/50" {...props} />,
+                          td: ({node, ...props}) => <td className="border-b border-white/5 py-2 px-3 text-stone-400" {...props} />,
+                          code: ({node, inline, ...props}) => 
+                            inline ? <code className="bg-stone-950 px-1.5 py-0.5 rounded text-indigo-300 font-mono text-[11px]" {...props} />
+                                   : <pre className="bg-stone-950 p-3 rounded-lg overflow-x-auto border border-white/10 text-[11px] mb-2"><code {...props} /></pre>,
+                          blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-indigo-500/50 pl-3 italic text-stone-400 my-2" {...props} />
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
 
                     {/* Dynamic Conversational Recharts */}
@@ -348,9 +334,6 @@ export default function CopilotPage() {
                 <Send size={14} />
               </button>
             </div>
-            <p className="text-[10px] text-stone-400 mt-2 text-center">
-              Copilot uses tool calling on your bank statement data. For financial decisions, please audit with certified advisors.
-            </p>
           </div>
         </div>
       )}
