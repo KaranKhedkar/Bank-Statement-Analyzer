@@ -165,6 +165,7 @@ export const useAppStore = create((set, get) => ({
   // --- Anomalies Data ---
   anomalies: [],
   isAnomaliesLoading: false,
+  hasFetchedAnomalies: false,
 
   // --- Forecast Data ---
   forecastData: {},
@@ -260,13 +261,8 @@ export const useAppStore = create((set, get) => ({
       
       if (!token) throw new Error("No active session");
 
-<<<<<<< HEAD
-      const response = await fetch('http://127.0.0.1:8000/api/forecast', {
-=======
-      // Note: Consider moving this URL to your import.meta.env variables later!
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetch(`${baseUrl}/forecast`, {
->>>>>>> origin/main
+       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
+         const response = await fetch(`${baseUrl}/forecast`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -286,7 +282,7 @@ export const useAppStore = create((set, get) => ({
     set({ isAnomaliesLoading: true });
     try {
       const data = await getAnomalies();
-      set({ anomalies: data.anomalies || [] });
+      set({ anomalies: data.anomalies || [], hasFetchedAnomalies: true });
     } catch (err) {
       console.error("Fetch anomalies failed:", err);
     } finally {
@@ -299,7 +295,7 @@ export const useAppStore = create((set, get) => ({
     try {
       await apiDetect();
       const data = await getAnomalies();
-      set({ anomalies: data.anomalies || [] });
+      set({ anomalies: data.anomalies || [], hasFetchedAnomalies: true });
     } finally {
       set({ isProcessing: false });
     }
