@@ -48,14 +48,19 @@ export default function Sidebar() {
     <aside className="w-64 h-screen bg-stone-950/40 backdrop-blur-xl border-r border-white/5 flex flex-col font-sans shrink-0 relative z-20">
       {/* Brand & Logo Area */}
       <div className="h-20 flex items-center px-6 border-b border-white/5">
-        <div className="flex items-center gap-3 group cursor-pointer">
-          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-[0_0_15px_rgba(79,70,229,0.3)] group-hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-400/30 transition-all duration-300">
-            <Cpu size={18} className="text-white" strokeWidth={2.5} />
+        <Link to="/dashboard/overview" className="flex items-center gap-2.5 group cursor-pointer select-none">
+          <div className="w-8 h-8 rounded-xl bg-linear-to-br from-indigo-500 via-indigo-600 to-purple-600 p-[1px] shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+            <div className="w-full h-full bg-stone-950 rounded-[11px] flex items-center justify-center">
+              <Cpu size={15} className="text-indigo-400" />
+            </div>
           </div>
-          <span className="font-bold text-lg text-white tracking-tight">
-            LOGO
-          </span>
-        </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-sm text-white tracking-tight">FinSight AI</span>
+            <span className="text-[10px] font-mono text-stone-500 px-1.5 py-0.5 rounded bg-white/5 border border-white/5">
+              v3.0-ML
+            </span>
+          </div>
+        </Link>
       </div>
 
       {/* Navigation Links */}

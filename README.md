@@ -1,6 +1,6 @@
-# Bank Statement Analyzer (AI Financial Telemetry)
+# FinSight AI (AI Financial Telemetry)
 
-Bank Statement Analyzer is an advanced, AI-powered personal finance telemetry platform. It allows users to upload raw bank statements (PDF/CSV), automatically parses and categorizes transactions using Large Language Models, detects spending anomalies via machine learning, and provides a conversational AI Copilot to interact with financial data. It bridges the gap between static bank statements and dynamic financial intelligence.
+FinSight AI is an advanced, AI-powered personal finance telemetry platform. It allows users to upload raw bank statements (PDF/CSV), automatically parses and categorizes transactions using Large Language Models, detects spending anomalies via machine learning, and provides a conversational AI Copilot to interact with financial data. It bridges the gap between static bank statements and dynamic financial intelligence.
 
 ## 🚀 Key Features
 
@@ -13,7 +13,29 @@ Bank Statement Analyzer is an advanced, AI-powered personal finance telemetry pl
 
 ## 📸 Screenshots / Demo
 
-*(Add links to screenshots or a demo video here)*
+### Main Dashboard
+* **Homepage:** 
+  ![Overview](docs/homepage.png)
+* **Overview:** 
+  ![Overview](docs/overview.png)
+* **Upload Data:**
+  ![Upload Data](docs/upload_data.png)
+* **Transactions:**
+  ![Transactions](docs/transactions.png)
+* **Categories:**
+  ![Categories](docs/categories.png)
+* **Forecast:**
+  ![Forecast](docs/forecast.png)
+* **Anomalies:**
+  ![Anomalies](docs/anomalies.png)
+
+### New Features
+* **Conversational Copilot:**
+  ![Conversational Copilot](docs/conversational_copilot.png)
+* **Conversational Charts:**
+  ![Conversational Charts](docs/conversational_charts.png)
+* **What If Simulation:**
+  ![What If Simulation](docs/what_if_simulation.png)
 
 ## 🛠 Tech Stack
 
