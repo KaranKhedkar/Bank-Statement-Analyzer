@@ -82,24 +82,14 @@ async def chat_with_copilot(
     
     anomalies = anom_res.data or []
 
-    # 3. Generate or fetch forecast data
-    forecast_data = {}
-    debit_txs = [t for t in transactions if t.get("type") == "debit"]
-    if debit_txs:
-        try:
-            forecast_data = predict_all_categories(debit_txs)
-        except Exception as e:
-            print(f"Forecast generation warning in copilot: {e}")
-
     user_data = {
         "user_id": user_id,
         "transactions": transactions,
         "anomalies": anomalies,
-        "forecast_data": forecast_data
+        "forecast_data": {}
     }
 
-    # 4. Run copilot agentic turn
-    # Offload synchronous Gemini API calls to a thread so FastAPI doesn't freeze
+    # 3. Run copilot agentic turn in threadpool
     result = await run_in_threadpool(
         run_copilot_turn, 
         user_message=payload.message, 
@@ -124,17 +114,9 @@ async def run_what_if_scenario(
     if not transactions:
         raise HTTPException(status_code=404, detail="No transactions found to simulate.")
 
-    debit_txs = [t for t in transactions if t.get("type") == "debit"]
-    forecast_data = {}
-    if debit_txs:
-        try:
-            forecast_data = predict_all_categories(debit_txs)
-        except Exception as e:
-            print(f"Forecast error in what-if: {e}")
-
     sim_result = simulate_what_if(
         transactions=transactions,
-        forecast_data=forecast_data,
+        forecast_data={},
         adjustments=payload.adjustments,
         monthly_investment=payload.monthly_investment or 0.0,
         expected_annual_return_pct=payload.expected_annual_return_pct or 8.0,
