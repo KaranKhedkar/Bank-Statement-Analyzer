@@ -414,8 +414,8 @@ export default function Overview() {
             </div>
           </div>
           
-          <div className="flex-1 min-h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="flex-1 min-h-[300px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
                 <XAxis dataKey="month" stroke="#78716c" tick={{ fill: '#78716c', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
@@ -436,13 +436,13 @@ export default function Overview() {
             <p className="text-sm text-stone-400">Categorical density</p>
           </div>
           
-          <div className="flex-1 min-h-[300px] w-full relative flex items-center justify-center">
+          <div className="flex-1 min-h-[300px] w-full relative flex items-center justify-center min-w-0">
             <div className="absolute text-center pointer-events-none z-10">
               <p className="text-stone-500 text-[10px] uppercase font-bold tracking-wider mb-1">Top Category</p>
               <p className="text-lg font-semibold text-white max-w-[100px] leading-tight truncate">{topCategoryName}</p>
             </div>
             
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Tooltip content={<CustomTooltip />} />
                 <Pie 

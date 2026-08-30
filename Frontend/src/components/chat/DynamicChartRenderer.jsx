@@ -59,8 +59,8 @@ export default function DynamicChartRenderer({ chart }) {
         </div>
       )}
 
-      <div className="w-full h-56 min-h-[220px]">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full h-56 min-h-[220px] min-w-0">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           {type === 'pie' ? (
             <PieChart>
               <Tooltip content={<CustomTooltip />} />
