@@ -18,9 +18,22 @@ from .rag import build_financial_context, retrieve_relevant_transactions
 
 load_dotenv()
 
-# Initialize Groq client
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+client = None
+
+def get_groq_client():
+    global client
+    if client is not None:
+        return client
+    api_key = os.getenv("GROQ_API_KEY")
+    if api_key:
+        try:
+            client = Groq(api_key=api_key)
+            return client
+        except Exception as e:
+            print(f"[COPILOT] Failed to initialize Groq: {e}")
+            return None
+    return None
 
 MODEL_NAME = "openai/gpt-oss-120b"
 
@@ -247,18 +260,14 @@ def run_copilot_turn(
     Executes an agentic conversation turn with tool calling, context retrieval,
     and structured output synthesis.
     """
-    global client
+    client = get_groq_client()
     if not client:
-        GROQ_KEY = os.getenv("GROQ_API_KEY")
-        if GROQ_KEY:
-            client = Groq(api_key=GROQ_KEY)
-        else:
-            return {
-                "response": "Groq API Key is missing. Please set `GROQ_API_KEY` in `Backend/.env`.",
-                "tool_calls": [],
-                "chart": None,
-                "suggested_actions": []
-            }
+        return {
+            "response": "Groq API Key is missing. Please set `GROQ_API_KEY` in your Render Environment Variables.",
+            "tool_calls": [],
+            "chart": None,
+            "suggested_actions": []
+        }
 
     transactions = user_data.get("transactions", [])
     anomalies = user_data.get("anomalies", [])

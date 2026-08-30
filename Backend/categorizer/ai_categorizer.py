@@ -6,7 +6,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+def get_groq_client():
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return None
+    try:
+        return Groq(api_key=api_key)
+    except Exception as e:
+        print(f"[CATEGORIZER] Failed to initialize Groq client: {e}")
+        return None
 
 CATEGORIES = [
     "Food & Dining", "Shopping", "Transport", "Health & Medical",
@@ -22,7 +30,15 @@ def ai_categorize_batch(transactions):
         print("[CATEGORIZER] All transactions categorized by rules -- skipping AI")
         return transactions
 
-    print(f"[CATEGORIZER] Sending {len(needs_ai)} transactions to Gemini...")
+    client = get_groq_client()
+    if not client:
+        print("[CATEGORIZER WARNING] GROQ_API_KEY is not configured on server. Assigning 'Other'.")
+        for t in needs_ai:
+            t['category'] = 'Other'
+            t.pop('needs_ai', None)
+        return transactions
+
+    print(f"[CATEGORIZER] Sending {len(needs_ai)} transactions to Groq (120B)...")
 
     txn_list = "\n".join([
         f"{i+1}. Date: {t['date']} | Amount: Rs.{t['amount']} | "

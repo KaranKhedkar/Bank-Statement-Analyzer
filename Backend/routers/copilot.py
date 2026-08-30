@@ -149,9 +149,13 @@ async def run_natural_what_if_scenario(
     authorization: str = Header(None)
 ):
     import json
-    from agent.copilot_engine import client, MODEL_NAME
+    from agent.copilot_engine import get_groq_client, MODEL_NAME
 
     user_supabase, user_id = get_user_supabase(authorization)
+
+    client = get_groq_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured on the server.")
 
     # 1. Parse the natural language query using Groq
     system_prompt = """
@@ -328,13 +332,19 @@ Provide:
 Keep it within 3-4 bullet points.
 """
     try:
-        from agent.copilot_engine import client, MODEL_NAME
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt
-        )
-        explanation = response.text.strip()
+        from agent.copilot_engine import get_groq_client, MODEL_NAME
+        client = get_groq_client()
+        if client:
+            completion = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            explanation = completion.choices[0].message.content.strip()
+        else:
+            explanation = f"This transaction of ₹{tx_amt:,.2f} was flagged because it is {multiplier}x higher than your average {tx.get('category')} expense of ₹{avg_cat:,.2f}."
     except Exception as e:
+        print(f"Error generating anomaly explanation: {e}")
         explanation = f"This transaction of ₹{tx_amt:,.2f} was flagged because it is {multiplier}x higher than your average {tx.get('category')} expense of ₹{avg_cat:,.2f}."
 
     return {
