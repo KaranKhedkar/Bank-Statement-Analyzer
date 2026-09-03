@@ -54,9 +54,11 @@ def get_spending_summary(
     savings_rate = (net_savings / total_income * 100) if total_income > 0 else 0
 
     # Date range
-    start_date = df["date_dt"].min().strftime("%Y-%m-%d")
-    end_date = df["date_dt"].max().strftime("%Y-%m-%d")
-    total_days = max((df["date_dt"].max() - df["date_dt"].min()).days + 1, 1)
+    min_d = df["date_dt"].min()
+    max_d = df["date_dt"].max()
+    start_date = min_d.strftime("%Y-%m-%d") if pd.notna(min_d) else "N/A"
+    end_date = max_d.strftime("%Y-%m-%d") if pd.notna(max_d) else "N/A"
+    total_days = max((max_d - min_d).days + 1, 1) if pd.notna(min_d) and pd.notna(max_d) else 30
 
     # Category breakdown (for debits)
     cat_breakdown = {}
@@ -487,7 +489,7 @@ def get_recurring_subscriptions(transactions: List[Dict[str, Any]]) -> Dict[str,
                     "frequency_cadence": cadence,
                     "occurrences_detected": len(group),
                     "estimated_monthly_cost": round(float(monthly_equiv), 2),
-                    "last_charge_date": str(group["date_dt"].max().strftime("%Y-%m-%d"))
+                    "last_charge_date": str(group["date_dt"].max().strftime("%Y-%m-%d")) if pd.notna(group["date_dt"].max()) else "N/A"
                 })
                 total_monthly += monthly_equiv
 

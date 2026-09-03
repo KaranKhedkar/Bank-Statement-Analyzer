@@ -21,9 +21,11 @@ def build_financial_context(
     if df.empty:
         return "No dated transactions available."
 
-    min_date = df["date_dt"].min().strftime("%d %b %Y")
-    max_date = df["date_dt"].max().strftime("%d %b %Y")
-    total_days = max((df["date_dt"].max() - df["date_dt"].min()).days + 1, 1)
+    min_val = df["date_dt"].min()
+    max_val = df["date_dt"].max()
+    min_date = min_val.strftime("%d %b %Y") if pd.notna(min_val) else "N/A"
+    max_date = max_val.strftime("%d %b %Y") if pd.notna(max_val) else "N/A"
+    total_days = max((max_val - min_val).days + 1, 1) if pd.notna(min_val) and pd.notna(max_val) else 30
 
     debits = df[df["type"] == "debit"]
     credits = df[df["type"] == "credit"]

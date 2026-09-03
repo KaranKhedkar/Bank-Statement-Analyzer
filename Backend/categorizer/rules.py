@@ -175,5 +175,5 @@ def categorize_transactions(transactions):
             txn['needs_ai'] = True
             unmatched += 1
 
-    print(f"✅ Rules matched: {matched} | Needs AI: {unmatched}")
+    print(f"[RULES] Matched: {matched} | Needs AI: {unmatched}")
     return transactions
