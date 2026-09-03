@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.class
@@ -43,3 +43,11 @@ htmlcov/
 uploads/
 temp/
 tmp/
+
+# Local Interview & Benchmark Notes
+Projectinfo.md
+ProjectInfo.md
+projectinfo.md
+benchmark.py
+Backend/benchmark.py
+
